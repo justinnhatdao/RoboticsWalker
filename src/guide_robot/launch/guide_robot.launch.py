@@ -14,7 +14,8 @@ If you changed any source files, rebuild first:
 
 import os
 from launch import LaunchDescription
-from launch.actions import AppendEnvironmentVariable, ExecuteProcess, IncludeLaunchDescription, TimerAction
+from launch.actions import AppendEnvironmentVariable, IncludeLaunchDescription, TimerAction
+from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
@@ -72,24 +73,34 @@ def generate_launch_description():
     )
 
     # ----------------------------------------------------------------
-    # 2. SLAM TOOLBOX — builds a map while the robot moves around.
-    #    This is equivalent to what you ran in Terminal 2.
-    #    'use_sim_time:=True' tells it to use Gazebo's clock, not real time.
+    # 2. CARTOGRAPHER SLAM — builds a live map in RViz as you drive.
+    #    Drive around with teleop to scan the whole environment.
+    #    Once done, save the map with:
+    #      ros2 run nav2_map_server map_saver_cli -f ~/map
     #
-    #    NOTE: Once you have a saved map (~map.yaml), you will REPLACE
-    #    this section with the Nav2 navigation launch instead (see below).
+    #    PHASE 2: Replace this with Nav2 navigation (see bottom of file).
     # ----------------------------------------------------------------
     slam_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory('slam_toolbox'),
+                get_package_share_directory('turtlebot3_cartographer'),
                 'launch',
-                'online_async_launch.py'
+                'cartographer.launch.py'
             )
         ),
         launch_arguments={
             'use_sim_time': 'True',
+            'use_rviz': 'False',
         }.items()
+    )
+
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', '/opt/ros/humble/share/turtlebot3_cartographer/rviz/tb3_cartographer.rviz'],
+        additional_env={'LIBGL_ALWAYS_SOFTWARE': '1'},
+        output='screen',
     )
 
     # ----------------------------------------------------------------
@@ -100,10 +111,10 @@ def generate_launch_description():
     #    NOTE: Remove or comment this out once you switch to autonomous
     #    Nav2 navigation — you won't need manual control anymore.
     # ----------------------------------------------------------------
-    teleop_node = ExecuteProcess(
-        cmd=['xterm', '-e', 'ros2 run guide_robot teleop_game'],
-        output='screen',
-    )
+    # teleop_node = ExecuteProcess(
+    #     cmd=['xterm', '-e', 'ros2 run guide_robot teleop_game'],
+    #     output='screen',
+    # )
 
     # ----------------------------------------------------------------
     # 4. DEAD MAN'S SWITCH NODE — publishes a Boolean ROS2 topic.
@@ -142,13 +153,25 @@ def generate_launch_description():
     # TimerAction delays SLAM by 5 seconds so Gazebo is ready first.
     # ----------------------------------------------------------------
     delayed_slam = TimerAction(
-        period=5.0,       # seconds to wait after Gazebo starts
+        period=3.0,
         actions=[slam_launch]
     )
 
-    delayed_teleop = TimerAction(
-        period=7.0,       # wait a bit longer so SLAM is also ready
-        actions=[teleop_node]
+    delayed_rviz = TimerAction(
+        period=4.0,
+        actions=[rviz_node]
+    )
+
+    wanderer_node = Node(
+        package='guide_robot',
+        executable='wanderer',
+        name='wanderer',
+        output='screen',
+    )
+
+    delayed_wanderer = TimerAction(
+        period=4.0,
+        actions=[wanderer_node]
     )
 
     # ----------------------------------------------------------------
@@ -162,7 +185,8 @@ def generate_launch_description():
         robot_state_publisher_cmd,
         spawn_turtlebot_cmd,
         delayed_slam,
-        delayed_teleop,
+        delayed_rviz,
+        delayed_wanderer,
 
         # Uncomment these once your nodes exist:
         # dead_mans_switch_node,
