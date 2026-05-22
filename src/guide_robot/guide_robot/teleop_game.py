@@ -2,41 +2,61 @@ import threading
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+from guide_robot_interfaces.msg import RobotMode
 from pynput import keyboard
 
-LINEAR_SPEED = 2.0
-ANGULAR_SPEED = 3.5
+LINEAR_SPEED = 0.5
+ANGULAR_SPEED = 1.5
+
+DRIVE_KEYS = {'w', 's', 'a', 'd'}
 
 
 class GameTeleop(Node):
     def __init__(self):
         super().__init__('game_teleop')
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
-        self.held_keys = set()
+        self.override_pub = self.create_publisher(RobotMode, 'robot_mode', 10)
+        self.current_key = None
+        self.override_active = False
         self.running = True
         self.timer = self.create_timer(0.05, self.publish_vel)
 
         print("\n=== Teleop ===")
-        print("W = Forward")
+        print("W = Forward (latches until new key)")
         print("S = Backward")
         print("A = Turn Left in place")
         print("D = Turn Right in place")
-        print("Space = Stop  |  Q = Quit")
+        print("Space = Stop")
+        print("R = Resume auto-mapping")
+        print("Q = Quit")
         print("==============\n")
+        print("Auto-mapping active. Press WASD to take control.")
+
+    def set_override(self, active):
+        if self.override_active != active:
+            self.override_active = active
+            msg = RobotMode()
+            msg.manual_active = active
+            msg.source = 'operator' if active else 'wanderer'
+            self.override_pub.publish(msg)
+            if active:
+                print("Manual override ON  — press R to resume auto-mapping")
+            else:
+                print("Auto-mapping resumed — press WASD to take control again")
 
     def publish_vel(self):
+        if not self.override_active:
+            return
         linear = 0.0
         angular = 0.0
-
-        if 'w' in self.held_keys:
+        if self.current_key == 'w':
             linear = LINEAR_SPEED
-        elif 's' in self.held_keys:
+        elif self.current_key == 's':
             linear = -LINEAR_SPEED
-        elif 'a' in self.held_keys:
+        elif self.current_key == 'a':
             angular = ANGULAR_SPEED
-        elif 'd' in self.held_keys:
+        elif self.current_key == 'd':
             angular = -ANGULAR_SPEED
-
         msg = Twist()
         msg.linear.x = linear
         msg.angular.z = angular
@@ -48,16 +68,15 @@ class GameTeleop(Node):
             if ch == 'q':
                 self.running = False
                 return False
-            self.held_keys.add(ch)
+            elif ch == 'r':
+                self.current_key = None
+                self.set_override(False)
+            elif ch in DRIVE_KEYS:
+                self.current_key = ch
+                self.set_override(True)
         except AttributeError:
             if key == keyboard.Key.space:
-                self.held_keys.clear()
-
-    def on_release(self, key):
-        try:
-            self.held_keys.discard(key.char.lower())
-        except AttributeError:
-            pass
+                self.current_key = None
 
 
 def main():
@@ -67,7 +86,7 @@ def main():
     thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
     thread.start()
 
-    with keyboard.Listener(on_press=node.on_press, on_release=node.on_release) as listener:
+    with keyboard.Listener(on_press=node.on_press) as listener:
         listener.join()
 
     node.destroy_node()

@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
+from guide_robot_interfaces.msg import RobotMode
 import random
 
 FORWARD_SPEED = 1.5
@@ -20,6 +21,8 @@ class Wanderer(Node):
         super().__init__('wanderer')
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         self.scan_sub = self.create_subscription(LaserScan, 'scan', self.scan_callback, 10)
+        self.create_subscription(RobotMode, 'robot_mode', self.override_callback, 10)
+        self.paused = False
 
         self.state = STATE_FORWARD
         self.turn_direction = 1.0
@@ -36,6 +39,9 @@ class Wanderer(Node):
         indices = range(int(start_deg * total / 360), int(end_deg * total / 360))
         vals = [ranges[i] for i in indices if range_min < ranges[i] < range_max]
         return min(vals) if vals else 999.0
+
+    def override_callback(self, msg):
+        self.paused = msg.manual_active
 
     def scan_callback(self, msg):
         r = msg.ranges
@@ -59,6 +65,8 @@ class Wanderer(Node):
         self.right_dist = min(right_vals) if right_vals else 999.0
 
     def control_loop(self):
+        if self.paused:
+            return
         msg = Twist()
         front_blocked = self.front_dist < OBSTACLE_DISTANCE
         left_blocked  = self.left_dist  < SIDE_DISTANCE

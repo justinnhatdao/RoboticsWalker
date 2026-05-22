@@ -1,20 +1,22 @@
 """
 BEFORE running, paste this into your terminal (required every session):
 
-  export LIBGL_ALWAYS_SOFTWARE=1
-  source /opt/ros/humble/setup.bash
-  source ~/turtlebot3_ws/install/setup.bash
-  export TURTLEBOT3_MODEL=waffle
-  ros2 launch guide_robot guide_robot.launch.py
+ cd ~/turtlebot3_ws
+colcon build --packages-select guide_robot_interfaces
+source install/setup.bash
+colcon build --packages-select guide_robot
+source install/setup.bash
+ros2 launch guide_robot guide_robot.launch.py
 
-If you changed any source files, rebuild first:
+
+If any changed source files, rebuild first:
   cd ~/turtlebot3_ws && colcon build --packages-select guide_robot
   source install/setup.bash
 """
 
 import os
 from launch import LaunchDescription
-from launch.actions import AppendEnvironmentVariable, IncludeLaunchDescription, TimerAction
+from launch.actions import AppendEnvironmentVariable, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -111,10 +113,10 @@ def generate_launch_description():
     #    NOTE: Remove or comment this out once you switch to autonomous
     #    Nav2 navigation — you won't need manual control anymore.
     # ----------------------------------------------------------------
-    # teleop_node = ExecuteProcess(
-    #     cmd=['xterm', '-e', 'ros2 run guide_robot teleop_game'],
-    #     output='screen',
-    # )
+    teleop_node = ExecuteProcess(
+        cmd=['xterm', '-e', 'ros2 run guide_robot teleop_game'],
+        output='screen',
+    )
 
     # ----------------------------------------------------------------
     # 4. DEAD MAN'S SWITCH NODE — publishes a Boolean ROS2 topic.
@@ -174,6 +176,11 @@ def generate_launch_description():
         actions=[wanderer_node]
     )
 
+    delayed_teleop = TimerAction(
+        period=4.0,
+        actions=[teleop_node]
+    )
+
     # ----------------------------------------------------------------
     # RETURN — this list is what actually gets launched.
     # Add/uncomment items above and include them here as you build.
@@ -187,6 +194,7 @@ def generate_launch_description():
         delayed_slam,
         delayed_rviz,
         delayed_wanderer,
+        delayed_teleop,
 
         # Uncomment these once your nodes exist:
         # dead_mans_switch_node,
