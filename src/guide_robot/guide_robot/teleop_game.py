@@ -5,8 +5,8 @@ from geometry_msgs.msg import Twist
 from guide_robot_interfaces.msg import RobotMode
 from pynput import keyboard
 
-LINEAR_SPEED = 0.5
-ANGULAR_SPEED = 1.5
+LINEAR_SPEED = 0.18
+ANGULAR_SPEED = 0.35
 
 DRIVE_KEYS = {'w', 's', 'a', 'd'}
 
@@ -21,16 +21,20 @@ class GameTeleop(Node):
         self.running = True
         self.timer = self.create_timer(0.05, self.publish_vel)
 
-        print("\n=== Teleop ===")
-        print("W = Forward (latches until new key)")
-        print("S = Backward")
-        print("A = Turn Left in place")
-        print("D = Turn Right in place")
-        print("Space = Stop")
-        print("R = Resume auto-mapping")
-        print("Q = Quit")
-        print("==============\n")
-        print("Auto-mapping active. Press WASD to take control.")
+        print("\n")
+        print("=" * 40)
+        print("         GUIDE ROBOT TELEOP")
+        print("=" * 40)
+        print("  W = Forward")
+        print("  S = Backward")
+        print("  A = Turn Left")
+        print("  D = Turn Right")
+        print("  Space = Stop movement")
+        print("  R = Resume auto-mapping")
+        print("  Q = Quit")
+        print("=" * 40)
+        print("\n  Auto-mapping active.")
+        print("  Press WASD to take manual control.\n")
 
     def set_override(self, active):
         if self.override_active != active:
@@ -40,9 +44,15 @@ class GameTeleop(Node):
             msg.source = 'operator' if active else 'wanderer'
             self.override_pub.publish(msg)
             if active:
-                print("Manual override ON  — press R to resume auto-mapping")
+                print("\n" + "=" * 40)
+                print("  MANUAL OVERRIDE ON")
+                print("  Press R to resume auto-mapping")
+                print("=" * 40 + "\n")
             else:
-                print("Auto-mapping resumed — press WASD to take control again")
+                print("\n" + "=" * 40)
+                print("  AUTO-MAPPING RESUMED")
+                print("  Press WASD to take control again")
+                print("=" * 40 + "\n")
 
     def publish_vel(self):
         if not self.override_active:
@@ -77,6 +87,8 @@ class GameTeleop(Node):
         except AttributeError:
             if key == keyboard.Key.space:
                 self.current_key = None
+                if self.override_active:
+                    print("\n  [Stopped]\n")
 
 
 def main():

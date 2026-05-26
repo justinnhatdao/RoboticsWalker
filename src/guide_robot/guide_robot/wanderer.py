@@ -5,15 +5,15 @@ from geometry_msgs.msg import Twist
 from guide_robot_interfaces.msg import RobotMode
 import random
 
-FORWARD_SPEED = 1.5
-TURN_SPEED = 2.5
-BACKUP_SPEED = -0.8
-OBSTACLE_DISTANCE = 0.6   # start turning when this close ahead
-SIDE_DISTANCE = 0.4       # minimum clearance on sides
+FORWARD_SPEED = 0.18
+TURN_SPEED = 0.35
+BACKUP_SPEED = -0.12
+OBSTACLE_DISTANCE = 0.8
+SIDE_DISTANCE = 0.5
 
-STATE_FORWARD  = 'forward'
-STATE_TURNING  = 'turning'
-STATE_BACKUP   = 'backup'
+STATE_FORWARD = 'forward'
+STATE_TURNING = 'turning'
+STATE_BACKUP  = 'backup'
 
 
 class Wanderer(Node):
@@ -33,12 +33,7 @@ class Wanderer(Node):
         self.right_dist = 999.0
 
         self.timer = self.create_timer(0.1, self.control_loop)
-        self.get_logger().info('Wanderer started')
-
-    def sector_min(self, ranges, range_min, range_max, start_deg, end_deg, total):
-        indices = range(int(start_deg * total / 360), int(end_deg * total / 360))
-        vals = [ranges[i] for i in indices if range_min < ranges[i] < range_max]
-        return min(vals) if vals else 999.0
+        self.get_logger().info('Wanderer started (mapping mode - slow)')
 
     def override_callback(self, msg):
         self.paused = msg.manual_active
@@ -48,18 +43,15 @@ class Wanderer(Node):
         n = len(r)
         mn, mx = msg.range_min, msg.range_max
 
-        # Front: -30 to +30 degrees (wraps around index 0)
         front_vals = [r[i] for i in list(range(0, int(n * 30 / 360))) +
                       list(range(int(n * 330 / 360), n))
                       if mn < r[i] < mx]
         self.front_dist = min(front_vals) if front_vals else 999.0
 
-        # Left: 30–120 degrees
         left_vals = [r[i] for i in range(int(n * 30 / 360), int(n * 120 / 360))
                      if mn < r[i] < mx]
         self.left_dist = min(left_vals) if left_vals else 999.0
 
-        # Right: 240–330 degrees
         right_vals = [r[i] for i in range(int(n * 240 / 360), int(n * 330 / 360))
                       if mn < r[i] < mx]
         self.right_dist = min(right_vals) if right_vals else 999.0
@@ -79,8 +71,7 @@ class Wanderer(Node):
             self.state_ticks -= 1
             if self.state_ticks <= 0:
                 self.state = STATE_TURNING
-                self.state_ticks = random.randint(12, 20)
-                # turn toward whichever side has more space
+                self.state_ticks = random.randint(15, 25)
                 self.turn_direction = 1.0 if self.left_dist >= self.right_dist else -1.0
 
         elif self.state == STATE_TURNING:
@@ -93,14 +84,15 @@ class Wanderer(Node):
         else:  # FORWARD
             if cornered:
                 self.state = STATE_BACKUP
-                self.state_ticks = 8
+                self.state_ticks = 10
             elif front_blocked:
                 self.state = STATE_TURNING
-                self.state_ticks = random.randint(10, 18)
+                self.state_ticks = random.randint(15, 25)
                 self.turn_direction = 1.0 if self.left_dist >= self.right_dist else -1.0
             else:
-                # slight random drift so it doesn't retrace the exact same path
-                drift = random.uniform(-0.3, 0.3)
+                openness_diff = self.left_dist - self.right_dist
+                drift = 0.15 * (openness_diff / 5.0)
+                drift = max(-0.25, min(0.25, drift))
                 msg.linear.x = FORWARD_SPEED
                 msg.angular.z = drift
 

@@ -1,0 +1,7 @@
+image: /home/justin/turtlebot3_ws/src/guide_robot/maps/map.pgm
+mode: trinary
+resolution: 0.05
+origin: [-9.31, -8.31, 0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.25
