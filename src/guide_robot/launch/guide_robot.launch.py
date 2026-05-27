@@ -30,7 +30,9 @@ def generate_launch_description():
     y_pose = LaunchConfiguration('y_pose', default='3.0')
 
     world = os.path.join(pkg_guide_robot, 'worlds', 'guide_house.world')
-    map_file = '/home/justin/turtlebot3_ws/src/guide_robot/maps/map.yaml'
+    # HOME PC: map_file = '/home/justin/turtlebot3_ws/src/guide_robot/maps/map.yaml'
+    # LAB/SEED: map_file = os.path.join(pkg_guide_robot, 'maps', 'map.yaml')
+    map_file = os.path.join(pkg_guide_robot, 'maps', 'map.yaml')
 
     set_env_vars_resources = AppendEnvironmentVariable(
         'GZ_SIM_RESOURCE_PATH',
