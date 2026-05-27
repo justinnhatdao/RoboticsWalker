@@ -24,6 +24,8 @@ def generate_launch_description():
     pkg_guide_robot = get_package_share_directory('guide_robot')
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    # In launch file
+   
     x_pose = LaunchConfiguration('x_pose', default='3.0')
     y_pose = LaunchConfiguration('y_pose', default='3.0')
 
@@ -77,16 +79,8 @@ def generate_launch_description():
         launch_arguments={
             'use_sim_time': 'True',
             'map': map_file,
+            'rviz_config': os.path.join(pkg_guide_robot, 'rviz', 'guide_robot.rviz'),
         }.items()
-    )
-
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=['-d', '/opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz'],
-        additional_env={'LIBGL_ALWAYS_SOFTWARE': '1'},
-        output='screen',
     )
 
     teleop_node = ExecuteProcess(
@@ -94,19 +88,24 @@ def generate_launch_description():
         output='screen',
     )
 
-    delayed_nav2 = TimerAction(
-        period=5.0,
-        actions=[nav2_launch]
+    waypoint_node = ExecuteProcess(
+        cmd=['xterm', '-e', 'ros2 run guide_robot waypoint_navigator'],
+        output='screen',
     )
 
-    delayed_rviz = TimerAction(
-        period=6.0,
-        actions=[rviz_node]
+    delayed_nav2 = TimerAction(
+        period=10.0,
+        actions=[nav2_launch]
     )
 
     delayed_teleop = TimerAction(
         period=4.0,
         actions=[teleop_node]
+    )
+
+    delayed_waypoint = TimerAction(
+        period=12.0,
+        actions=[waypoint_node]
     )
 
     return LaunchDescription([
@@ -116,6 +115,6 @@ def generate_launch_description():
         robot_state_publisher_cmd,
         spawn_turtlebot_cmd,
         delayed_nav2,
-        delayed_rviz,
         delayed_teleop,
+        delayed_waypoint,
     ])

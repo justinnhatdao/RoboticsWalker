@@ -20,6 +20,8 @@ setup(
             glob('config/*.lua')),
         (os.path.join('share', package_name, 'maps'),
             glob('maps/*')),
+        (os.path.join('share', package_name, 'rviz'),
+            glob('rviz/*.rviz')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -32,8 +34,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'teleop_game = guide_robot.teleop_game:main',
-            'wanderer = guide_robot.wanderer:main',
-        ],
+        'teleop_game = guide_robot.teleop_game:main',
+        'wanderer = guide_robot.wanderer:main',
+        'waypoint_navigator = guide_robot.waypoint_navigator:main',
+    ],
     },
 )
