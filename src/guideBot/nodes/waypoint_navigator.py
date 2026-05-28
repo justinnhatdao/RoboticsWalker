@@ -41,28 +41,31 @@ class WaypointNavigator(Node):
         self.initial_pose_pub = self.create_publisher(
             PoseWithCovarianceStamped, '/initialpose', 10)
 
-        # Try publishing initial pose every 2 seconds for first 20 seconds
+        # Try publishing initial pose every 2 seconds for first 10 seconds
         self.create_timer(2.0, self.publish_initial_pose_once)
 
-        self.get_logger().info('')
-        self.get_logger().info('========================================')
-        self.get_logger().info('       GUIDE ROBOT - READY')
-        self.get_logger().info('========================================')
-        self.get_logger().info('Hold SPACE = dead-man switch')
-        self.get_logger().info('While holding SPACE, press:')
-        self.get_logger().info('  1 = Living Room')
-        self.get_logger().info('  2 = Bedroom')
-        self.get_logger().info('  3 = Office')
-        self.get_logger().info('Release SPACE at any time to stop.')
-        self.get_logger().info('Press Q to quit.')
-        self.get_logger().info('========================================')
-        self.get_logger().info('')
+        print('')
+        print('=====================================')
+        print('        GUIDE ROBOT - READY')
+        print('=====================================')
+        print('')
+        print('Hold SPACE = dead-man switch')
+        print('')
+        print('While holding SPACE, press:')
+        print('  1 = Living Room')
+        print('  2 = Bedroom')
+        print('  3 = Office')
+        print('')
+        print('Release SPACE at any time to stop.')
+        print('Press Q to quit.')
+        print('')
+        print('=====================================')
+        print('')
 
         self.input_thread = threading.Thread(target=self.keyboard_loop, daemon=True)
         self.input_thread.start()
 
     def publish_initial_pose_once(self):
-        # Publish a few times to make sure AMCL receives it
         if self._pose_publish_count >= 5:
             return
         msg = PoseWithCovarianceStamped()
@@ -80,13 +83,13 @@ class WaypointNavigator(Node):
         msg.pose.covariance[35] = 0.06
         self.initial_pose_pub.publish(msg)
         self._pose_publish_count += 1
-        self.get_logger().info(f'[INFO] Initial pose published ({self._pose_publish_count}/5)')
+        self.get_logger().info(f'Initial pose published ({self._pose_publish_count}/5)')
 
     def announce(self, message):
         msg = String()
         msg.data = message
         self.status_pub.publish(msg)
-        self.get_logger().info(f'[STATUS] {message}')
+        print(f'\n  >> {message}\n')
 
     def cancel_navigation(self):
         if self._goal_handle is not None:
@@ -100,27 +103,27 @@ class WaypointNavigator(Node):
         self._goal_handle = None
         self.current_destination = None
         self._last_dist_announced = None
-        self.get_logger().info('[INFO] Navigation cancelled.')
+        print('  Navigation cancelled.')
 
     def navigate_to(self, key):
         if key not in WAYPOINTS:
             return
 
         if self.navigating:
-            self.announce('Already navigating — release SPACE to cancel first.')
+            print('  Already navigating — release SPACE to cancel first.')
             return
 
         room_name, x, y = WAYPOINTS[key]
 
         if not self.nav_client.wait_for_server(timeout_sec=3.0):
-            self.get_logger().warn('[WARN] Nav2 not available yet. Try again in a moment.')
+            print('  Nav2 not ready yet. Try again in a moment.')
             return
 
         self.navigating = True
         self.current_destination = room_name
         self._last_dist_announced = None
 
-        self.announce(f'Heading to {room_name}')
+        self.announce(f'Heading to {room_name}...')
 
         goal = NavigateToPose.Goal()
         goal.pose = PoseStamped()
@@ -140,13 +143,16 @@ class WaypointNavigator(Node):
     def feedback_callback(self, feedback_msg):
         dist = feedback_msg.feedback.distance_remaining
         if self._last_dist_announced is None or abs(dist - self._last_dist_announced) > 1.0:
-            self.announce(f'Navigating to {self.current_destination} — {dist:.1f}m remaining')
+            print(f'  {self.current_destination}: {dist:.1f}m remaining')
             self._last_dist_announced = dist
+            msg = String()
+            msg.data = f'Navigating to {self.current_destination} — {dist:.1f}m remaining'
+            self.status_pub.publish(msg)
 
     def goal_response_callback(self, future):
         goal_handle = future.result()
         if not goal_handle.accepted:
-            self.get_logger().warn('[WARN] Goal rejected by Nav2.')
+            print('  Goal rejected by Nav2.')
             self.navigating = False
             return
         self._goal_handle = goal_handle
@@ -163,10 +169,9 @@ class WaypointNavigator(Node):
         if destination:
             self.announce(f'Arrived at {destination}')
 
-        self.get_logger().info('')
-        self.get_logger().info('Ready for next destination.')
-        self.get_logger().info('Hold SPACE + press 1, 2, or 3 to navigate.')
-        self.get_logger().info('')
+        print('  Ready for next destination.')
+        print('  Hold SPACE + press 1, 2, or 3 to navigate.')
+        print('')
 
     def keyboard_loop(self):
         fd = sys.stdin.fileno()
@@ -183,11 +188,10 @@ class WaypointNavigator(Node):
                     if self.deadman_held:
                         self.navigate_to(ch)
                     else:
-                        self.get_logger().info(
-                            '[INFO] Hold SPACE first, then press a number.')
+                        print('  Hold SPACE first, then press a number.')
 
                 elif ch == 'q' or ch == '\x03':
-                    self.get_logger().info('[INFO] Quitting...')
+                    print('  Quitting...')
                     break
 
                 else:
@@ -195,13 +199,12 @@ class WaypointNavigator(Node):
                         self.deadman_held = False
                         if self.navigating:
                             self.announce(
-                                'Dead-man switch released — stopping. '
-                                'Hold SPACE and press a number to resume.')
+                                'Dead-man switch released — stopping navigation.')
                             self.cancel_navigation()
 
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-            self.get_logger().info('[INFO] Keyboard stopped. Window will stay open.')
+            print('  Keyboard stopped. Window will stay open.')
             while rclpy.ok():
                 time.sleep(1)
 

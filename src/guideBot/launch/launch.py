@@ -5,7 +5,7 @@ export LIBGL_ALWAYS_SOFTWARE=1
 source /opt/ros/humble/setup.bash
 source ~/turtlebot3_ws/install/setup.bash
 export TURTLEBOT3_MODEL=waffle
-ros2 launch guide_robot guide_robot.launch.py
+ros2 launch guideBot launch.py
 """
 
 import os
@@ -21,7 +21,7 @@ def generate_launch_description():
 
     launch_file_dir = os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'launch')
     ros_gz_sim = get_package_share_directory('ros_gz_sim')
-    pkg_guide_robot = get_package_share_directory('guide_robot')
+    pkg_guide_robot = get_package_share_directory('guideBot')
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     # In launch file
@@ -30,7 +30,7 @@ def generate_launch_description():
     y_pose = LaunchConfiguration('y_pose', default='3.0')
 
     world = os.path.join(pkg_guide_robot, 'worlds', 'guide_house.world')
-    # HOME PC: map_file = '/home/justin/turtlebot3_ws/src/guide_robot/maps/map.yaml'
+    # HOME PC: map_file = '/home/justin/turtlebot3_ws/src/guideBot/maps/map.yaml'
     # LAB/SEED: map_file = os.path.join(pkg_guide_robot, 'maps', 'map.yaml')
     map_file = os.path.join(pkg_guide_robot, 'maps', 'map.yaml')
 
@@ -86,12 +86,12 @@ def generate_launch_description():
     )
 
     teleop_node = ExecuteProcess(
-        cmd=['xterm', '-e', 'ros2 run guide_robot teleop_game'],
+        cmd=['xterm', '-e', 'ros2 run guideBot teleop_game'],
         output='screen',
     )
 
     waypoint_node = ExecuteProcess(
-        cmd=['xterm', '-e', 'ros2 run guide_robot waypoint_navigator'],
+        cmd=['xterm', '-e', 'ros2 run guideBot waypoint_navigator'],
         output='screen',
     )
 

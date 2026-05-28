@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import find_packages, setup
 
-package_name = 'guide_robot'
+package_name = 'guideBot'
 
 setup(
     name=package_name,
@@ -34,9 +34,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
-        'teleop_game = guide_robot.teleop_game:main',
-        'wanderer = guide_robot.wanderer:main',
-        'waypoint_navigator = guide_robot.waypoint_navigator:main',
+        'teleop_game = nodes.teleop_game:main',
+        'wanderer = nodes.wanderer:main',
+        'waypoint_navigator = nodes.waypoint_navigator:main',
     ],
     },
 )
