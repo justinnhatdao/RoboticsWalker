@@ -110,19 +110,24 @@
       </ode>
     </physics>
 
-    <!-- ========================================================= -->
-    <!-- LAYOUT (top-down):                                         -->
-    <!--   Bedroom  (x: -6 to 0, y:  0 to 5)  — top left          -->
-    <!--   Office   (x: -6 to 0, y: -5 to 0)  — bottom left       -->
-    <!--   Kitchen  (x:  0 to 6, y: -5 to 5)  — full right side   -->
+    <!-- ============================================================ -->
+    <!-- HOUSE LAYOUT (top-down view):                              -->
     <!--                                                            -->
-    <!--   Doorways:                                                -->
-    <!--     Bedroom <-> Kitchen: y=2.0 to y=3.5  (on x=0 wall)   -->
-    <!--     Office  <-> Kitchen: y=-3.5 to y=-2.0 (on x=0 wall)  -->
-    <!--     Bedroom <-> Office:  x=-3.0 to x=-1.5 (on y=0 wall)  -->
-    <!-- ========================================================= -->
+    <!--   The house has 3 rooms. The large Living Room takes up    -->
+    <!--   the entire right half. The left half is split in two:    -->
+    <!--   Bedroom on top, Office on bottom.                        -->
+    <!--                                                            -->
+    <!--   Bedroom     (x: -6 to 0, y:  0 to 5)  -- top left      -->
+    <!--   Office      (x: -6 to 0, y: -5 to 0)  -- bottom left   -->
+    <!--   Living Room (x:  0 to 6, y: -5 to 5)  -- full right    -->
+    <!--                                                            -->
+    <!--   Doorways (open gaps in the walls):                       -->
+    <!--     Bedroom <-> Living Room: y= 2.0 to 3.5  (x=0 wall)   -->
+    <!--     Office  <-> Living Room: y=-3.5 to -2.0 (x=0 wall)   -->
+    <!--     Bedroom <-> Office:      x=-3.0 to -1.5 (y=0 wall)   -->
+    <!-- ============================================================ -->
 
-    <!-- OUTER WALLS -->
+    <!-- OUTER WALLS -- enclose the full 12x10 house footprint -->
     <model name="wall_bottom"><static>true</static><pose>0 -5 0.5 0 0 0</pose>
       <link name="link">
         <collision name="c"><geometry><box><size>12 0.2 1</size></box></geometry></collision>
@@ -159,8 +164,9 @@
       </link>
     </model>
 
-    <!-- VERTICAL DIVIDER: Bedroom+Office | Kitchen (x=0) -->
-    <!-- Top segment: y=3.5 to y=5 (above bedroom-kitchen doorway) -->
+    <!-- VERTICAL DIVIDER at x=0: separates the two left rooms from the Living Room -->
+    <!-- Split into 3 segments to leave gaps for the two doorways -->
+    <!-- Top segment: y=3.5 to y=5 (above the Bedroom/Living Room doorway) -->
     <model name="divider_vert_top"><static>true</static><pose>0 4.25 0.5 0 0 0</pose>
       <link name="link">
         <collision name="c"><geometry><box><size>0.2 1.5 1</size></box></geometry></collision>
@@ -170,7 +176,7 @@
       </link>
     </model>
 
-    <!-- Mid: y=-2.0 to y=2.0 (between the two doorways) -->
+    <!-- Mid segment: y=-2.0 to y=2.0 (solid wall between the two doorways) -->
     <model name="divider_vert_mid"><static>true</static><pose>0 0 0.5 0 0 0</pose>
       <link name="link">
         <collision name="c"><geometry><box><size>0.2 4.0 1</size></box></geometry></collision>
@@ -180,7 +186,7 @@
       </link>
     </model>
 
-    <!-- Bottom segment: y=-5 to y=-3.5 (below office-kitchen doorway) -->
+    <!-- Bottom segment: y=-5 to y=-3.5 (below the Office/Living Room doorway) -->
     <model name="divider_vert_bottom"><static>true</static><pose>0 -4.25 0.5 0 0 0</pose>
       <link name="link">
         <collision name="c"><geometry><box><size>0.2 1.5 1</size></box></geometry></collision>
@@ -190,8 +196,9 @@
       </link>
     </model>
 
-    <!-- HORIZONTAL DIVIDER: Bedroom | Office (left side only, y=0) -->
-    <!-- Left segment: x=-6 to x=-3.0 (left of doorway) -->
+    <!-- HORIZONTAL DIVIDER at y=0: splits the left half into Bedroom (top) and Office (bottom) -->
+    <!-- Split into 2 segments to leave a gap for the Bedroom/Office doorway -->
+    <!-- Left segment: x=-6 to x=-3.0 (left of the doorway opening) -->
     <model name="divider_horiz_left"><static>true</static><pose>-4.5 0 0.5 0 0 0</pose>
       <link name="link">
         <collision name="c"><geometry><box><size>3.0 0.2 1</size></box></geometry></collision>
@@ -201,7 +208,7 @@
       </link>
     </model>
 
-    <!-- Right segment: x=-1.5 to x=0 (right of doorway) -->
+    <!-- Right segment: x=-1.5 to x=0 (right of the doorway opening) -->
     <model name="divider_horiz_right"><static>true</static><pose>-0.75 0 0.5 0 0 0</pose>
       <link name="link">
         <collision name="c"><geometry><box><size>1.5 0.2 1</size></box></geometry></collision>
