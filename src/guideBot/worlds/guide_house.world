@@ -110,22 +110,22 @@
       </ode>
     </physics>
 
-    <!-- ============================================================ -->
-    <!-- HOUSE LAYOUT (top-down view):                              -->
-    <!--                                                            -->
-    <!--   The house has 3 rooms. The large Living Room takes up    -->
-    <!--   the entire right half. The left half is split in two:    -->
-    <!--   Bedroom on top, Office on bottom.                        -->
-    <!--                                                            -->
+    <!-- ======================================================== -->
+    <!-- HOUSE LAYOUT (top-down view):                            -->
+    <!--                                                          -->
+    <!--   The house has 3 rooms. The large Living Room takes up  -->
+    <!--   the entire right half. The left half is split in two:  -->
+    <!--   Bedroom on top, Office on bottom.                      -->
+    <!--                                                          -->
     <!--   Bedroom     (x: -6 to 0, y:  0 to 5)  -- top left      -->
     <!--   Office      (x: -6 to 0, y: -5 to 0)  -- bottom left   -->
     <!--   Living Room (x:  0 to 6, y: -5 to 5)  -- full right    -->
-    <!--                                                            -->
-    <!--   Doorways (open gaps in the walls):                       -->
+    <!--                                                          -->
+    <!--   Doorways (open gaps in the walls):                     -->
     <!--     Bedroom <-> Living Room: y= 2.0 to 3.5  (x=0 wall)   -->
     <!--     Office  <-> Living Room: y=-3.5 to -2.0 (x=0 wall)   -->
     <!--     Bedroom <-> Office:      x=-3.0 to -1.5 (y=0 wall)   -->
-    <!-- ============================================================ -->
+    <!-- ======================================================== -->
 
     <!-- OUTER WALLS -- enclose the full 12x10 house footprint -->
     <model name="wall_bottom"><static>true</static><pose>0 -5 0.5 0 0 0</pose>
@@ -208,7 +208,7 @@
       </link>
     </model>
 
-    <!-- Right segment: x=-1.5 to x=0 (right of the doorway opening) -->
+    <!-- Right segment: x=-1.5 to x=0 (right of doorway) -->
     <model name="divider_horiz_right"><static>true</static><pose>-0.75 0 0.5 0 0 0</pose>
       <link name="link">
         <collision name="c"><geometry><box><size>1.5 0.2 1</size></box></geometry></collision>
