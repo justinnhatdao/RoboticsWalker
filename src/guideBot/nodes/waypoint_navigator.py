@@ -6,11 +6,11 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import String
 from builtin_interfaces.msg import Time
 import threading
+import time
 import sys
 import tty
 import termios
-import math
-import time
+from pynput import keyboard
 
 
 # Named waypoints I defined by reading the coordinates from RViz after the map was built
@@ -43,6 +43,8 @@ class WaypointNavigator(Node):
         self.current_destination = None    # Room name of the active goal
         self._goal_handle = None           # Kept so I can cancel the goal if needed
         self._last_dist_announced = None   # Throttles distance print-outs to every 1 m
+        self._current_key = None           # Waypoint key of the active goal
+        self._paused_key = None            # Waypoint key saved when deadman is released mid-nav
         self._initial_pose_published = False
         self._pose_publish_count = 0
 
@@ -109,12 +111,18 @@ class WaypointNavigator(Node):
             self.navigating = False
 
     def cancel_done_callback(self, future):
-        # Reset all navigation state after a successful cancellation
         self.navigating = False
         self._goal_handle = None
         self.current_destination = None
+        self._current_key = None
         self._last_dist_announced = None
-        print('  Navigation cancelled.')
+        # _paused_key is intentionally NOT cleared here.
+        # on_press needs it to resume if Space was re-pressed before cancel finished.
+        if self.deadman_held and self._paused_key:
+            key_to_resume = self._paused_key
+            self._paused_key = None  # clear before navigating to avoid a double-send
+            self.announce(f'Resuming navigation to {WAYPOINTS[key_to_resume][0]}...')
+            self.navigate_to(key_to_resume)
 
     def navigate_to(self, key):
         if key not in WAYPOINTS:
@@ -134,6 +142,8 @@ class WaypointNavigator(Node):
 
         self.navigating = True
         self.current_destination = room_name
+        self._current_key = key
+        self._paused_key = None
         self._last_dist_announced = None
 
         self.announce(f'Heading to {room_name}...')
@@ -178,10 +188,11 @@ class WaypointNavigator(Node):
         result_future.add_done_callback(self.goal_result_callback)
 
     def goal_result_callback(self, future):
-        # Navigation finished — clean up all state and prompt for the next destination
         self.navigating = False
         self._goal_handle = None
         self._last_dist_announced = None
+        self._current_key = None
+        # by a deadman release and we still need it to resume on next Space press
         destination = self.current_destination
         self.current_destination = None
 
@@ -193,47 +204,71 @@ class WaypointNavigator(Node):
         print('')
 
     def keyboard_loop(self):
-        # Put the terminal in raw mode so I can read single keypresses without Enter
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            while rclpy.ok():
-                ch = sys.stdin.read(1)
-
-                if ch == ' ':
-                    # Holding SPACE arms the dead-man switch, enabling navigation commands
+        def on_press(key):
+            if key == keyboard.Key.space:
+                # Guard against OS key-repeat: only act on the first press,
+                # not the flood of repeats the OS sends while the key is held.
+                if not self.deadman_held:
                     self.deadman_held = True
-
-                elif ch in ('1', '2', '3'):
+                    # Only resume here if cancel has already finished (navigating=False).
+                    # If cancel is still in flight, cancel_done_callback will see
+                    # deadman_held=True and trigger the resume automatically.
+                    if self._paused_key and not self.navigating:
+                        key_to_resume = self._paused_key
+                        self._paused_key = None  # clear before navigating to avoid double-send
+                        print(f'  Resuming navigation to {WAYPOINTS[key_to_resume][0]}...')
+                        self.announce(f'Resuming navigation to {WAYPOINTS[key_to_resume][0]}...')
+                        self.navigate_to(key_to_resume)
+            else:
+                try:
+                    ch = key.char
+                except AttributeError:
+                    return
+                if ch in ('1', '2', '3'):
                     if self.deadman_held:
+                        self._paused_key = None
                         self.navigate_to(ch)
                     else:
                         print('  Hold SPACE first, then press a number.')
-
-                elif ch == 'q' or ch == '\x03':  # q or Ctrl+C
+                elif ch == 'q':
                     print('  Quitting...')
-                    break
+                    return False  # stops the listener
 
-                else:
-                    # Any key that isn't SPACE or a destination is treated as a dead-man release,
-                    # which cancels active navigation as a safety measure
-                    if self.deadman_held:
-                        self.deadman_held = False
-                        if self.navigating:
-                            self.announce(
-                                'Dead-man switch released — stopping navigation.')
-                            self.cancel_navigation()
+        def on_release(key):
+            if key == keyboard.Key.space:
+                self.deadman_held = False
+                if self.navigating:
+                    self._paused_key = self._current_key
+                    destination = self.current_destination
+                    print(f'\n  Deadman released — navigation stopped.')
+                    print(f'  Hold SPACE to resume to {destination}.\n')
+                    self.announce(
+                        f'You have let go of the deadman switch. '
+                        f'Hold SPACE to resume navigation to {destination}.'
+                    )
+                    self.cancel_navigation()
+                elif self._paused_key:
+                    print(f'\n  Hold SPACE to resume to {WAYPOINTS[self._paused_key][0]}.\n')
+            elif key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
+                return False  # Ctrl+C stops the listener
 
-        finally:
-            # Always restore the terminal settings so the shell isn't left in raw mode
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-            print('  Keyboard stopped. Window will stay open.')
-            while rclpy.ok():
-                time.sleep(1)
+        with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+            listener.join()
+
+        print('  Keyboard stopped. Window will stay open.')
+        while rclpy.ok():
+            time.sleep(1)
 
 
 def main():
+    # Put the terminal in cbreak mode so Space and other keys are intercepted cleanly
+    # by pynput without being echoed to stdout as characters.
+    old_term_settings = None
+    if sys.stdin.isatty():
+        fd = sys.stdin.fileno()
+        old_term_settings = termios.tcgetattr(fd)
+        tty.setcbreak(fd)
+
     rclpy.init()
     node = WaypointNavigator()
     try:
@@ -243,6 +278,9 @@ def main():
     finally:
         node.destroy_node()
         rclpy.shutdown()
+        # Restore the terminal to its original settings on exit
+        if old_term_settings is not None:
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old_term_settings)
 
 
 if __name__ == '__main__':
