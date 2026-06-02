@@ -1,6 +1,7 @@
-# HOME PC: image: /home/justin/turtlebot3_ws/src/guideBot/maps/map.pgm
-# LAB/SEED: image: /home/justin/turtlebot3_ws/src/guideBot/maps/map.pgm
-image: /home/justin/turtlebot3_ws/src/guideBot/maps/map.pgm
+# HOME PC:   image: /home/justin/turtlebot3_ws/src/guideBot/maps/map.pgm
+# LAB/SEED:  image: /home/justin/turtlebot3_ws/src/guideBot/maps/map.pgm
+# SCHOOL PC: image: /home/student/RoboticsWalker/src/guideBot/maps/map.pgm
+image: /home/student/RoboticsWalker/src/guideBot/maps/map.pgm
 mode: trinary
 resolution: 0.05
 origin: [-9.31, -8.31, 0]

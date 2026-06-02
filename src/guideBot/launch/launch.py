@@ -111,6 +111,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Open the guide announcer in its own xterm so it is a separately visible node
+    # that prints destination and arrival messages from the /guide_status topic
+    announcer_node = ExecuteProcess(
+        cmd=['xterm', '-e', 'ros2 run guideBot guide_announcer'],
+        output='screen',
+    )
+
     # Delay Nav2 by 10 seconds to give Gazebo time to fully load the world and
     # spawn the robot before the navigation stack tries to initialize
     delayed_nav2 = TimerAction(
@@ -131,6 +138,12 @@ def generate_launch_description():
         actions=[waypoint_node]
     )
 
+    # Delay the announcer by the same amount so it is ready before any status messages arrive
+    delayed_announcer = TimerAction(
+        period=12.0,
+        actions=[announcer_node]
+    )
+
     return LaunchDescription([
         set_env_vars_resources,
         gzserver_cmd,
@@ -140,4 +153,5 @@ def generate_launch_description():
         delayed_nav2,
         delayed_teleop,
         delayed_waypoint,
+        delayed_announcer,
     ])

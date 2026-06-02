@@ -37,6 +37,7 @@ setup(
         'teleop_game = nodes.teleop_game:main',
         'wanderer = nodes.wanderer:main',
         'waypoint_navigator = nodes.waypoint_navigator:main',
+        'guide_announcer = nodes.guide_announcer:main',
     ],
     },
 )

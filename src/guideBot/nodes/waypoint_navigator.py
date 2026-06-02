@@ -4,6 +4,7 @@ from rclpy.action import ActionClient
 from nav2_msgs.action import NavigateToPose
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import String
+from builtin_interfaces.msg import Time
 import threading
 import sys
 import tty
@@ -74,22 +75,18 @@ class WaypointNavigator(Node):
         self.input_thread.start()
 
     def publish_initial_pose_once(self):
-        # Stop after 5 publishes, by then AMCL should have received the estimate
         if self._pose_publish_count >= 5:
             return
         msg = PoseWithCovarianceStamped()
         msg.header.frame_id = 'map'
-        msg.header.stamp = self.get_clock().now().to_msg()
-        # Position matches the spawn location so the map and sim are aligned from the start
+        msg.header.stamp = Time()  # zero stamp lets AMCL use the current sim time
         msg.pose.pose.position.x = SPAWN_X
         msg.pose.pose.position.y = SPAWN_Y
         msg.pose.pose.position.z = 0.0
-        # Identity quaternion — robot spawns facing the positive X direction
         msg.pose.pose.orientation.x = 0.0
         msg.pose.pose.orientation.y = 0.0
         msg.pose.pose.orientation.z = 0.0
         msg.pose.pose.orientation.w = 1.0
-        # Covariance values recommended for a known starting position (low uncertainty)
         msg.pose.covariance[0] = 0.25
         msg.pose.covariance[7] = 0.25
         msg.pose.covariance[35] = 0.06
@@ -98,12 +95,10 @@ class WaypointNavigator(Node):
         self.get_logger().info(f'Initial pose published ({self._pose_publish_count}/5)')
 
     def announce(self, message):
-        # Print to the terminal and also publish to the status topic so anything
-        # subscribed to /guide_status can react to navigation events
+        # Publish to /guide_status — the guide_announcer node subscribes and prints it
         msg = String()
         msg.data = message
         self.status_pub.publish(msg)
-        print(f'\n  >> {message}\n')
 
     def cancel_navigation(self):
         # Cancel the current Nav2 goal asynchronously; result handled in the callback

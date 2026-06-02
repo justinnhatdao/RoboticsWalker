@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wsl -d ROS2Lab bash -c \"cat /home/student/RoboticsWalker/src/guideBot/worlds/guide_house.world\")",
+      "Bash(wsl -d ROS2Lab bash -c \"cat /opt/ros/humble/share/turtlebot3_gazebo/models/turtlebot3_waffle/model.sdf\")",
+      "Bash(wsl -d ROS2Lab bash -c \"find /home/student/RoboticsWalker/src/guideBot/ -name '*.sdf' -o -name '*.urdf' -o -name '*.xacro' 2>/dev/null\")"
+    ]
+  }
+}
