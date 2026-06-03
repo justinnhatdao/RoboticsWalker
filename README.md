@@ -37,7 +37,7 @@ navigates there, announcing its status along the way.
 
 The following components were written entirely from scratch for this project. None of this functionality exists in Nav2 or any other library used.
 
-### 1. Named Waypoint System
+### 1. Named Waypoint System (src/guideBot/nodes/waypoint_navigator.py)
 Nav2 works with raw x/y coordinates , it has no concept of named rooms. This project includes a Python dictionary that maps human-readable room names to their specific coordinates in the simulated environment:
 
 ```python
@@ -50,20 +50,20 @@ WAYPOINTS = {
 
 When a user selects a destination, the node looks up the corresponding coordinates and sends them to Nav2 as a navigation goal. This is the core bridge between user intent and robot action.
 
-### 2. Accessible Terminal Input Interface (Dead-Man's Switch Design)
-A custom input interface that requires the user to hold a "dead-man's switch" key while pressing a number key to select a destination. This is intentionally designed with safety in mind , accidental single keystrokes cannot send the robot moving. Current work in progress.
+### 2. Accessible Terminal Input Interface (Dead-Man's Switch Design) (src/guideBot/nodes/waypoint_navigator.py)
+A custom input interface that requires the user to hold a "dead-man's switch" key while pressing a number key to select a destination. This is intentionally designed with safety in mind , accidental single keystrokes cannot send the robot moving. 
 
-### 3. Guide Status Announcer Node
+### 3. Guide Status Announcer Node (src/guideBot/nodes/guide_announcer.py)
 A ROS2 publisher/subscriber node that generates human-readable status messages as the robot navigates. Messages such as `"Heading to Bedroom..."` and `"Arrived at Bedroom"` are published to a dedicated ROS2 topic. This gives a visually impaired user the verbal feedback they would need to follow the robot to their destination. I also have annoucements along the way updating every meter of movement like  `"Bedroom 6.1m remaining..."`
 
-### 4. Wanderer Node
+### 4. Wanderer Node (src/guideBot/nodes/wanderer.py)
 A custom autonomous exploration node that drives the robot through the environment during the SLAM mapping phase. Rather than requiring fully manual teleoperation to build the map, the wanderer node moves the robot through the space automatically while Cartographer builds the occupancy grid.
 
-### 5. Custom RViz Configuration
-The default Nav2 RViz configuration caused the robot visualization to move too fast and snap erratically, making it difficult to monitor navigation. A custom RViz config was created to tune the display behavior , smoothing out robot movement in the visualizer and making it easier to observe and debug the navigation stack during development.
-
-### 6. Custom WASD Teleop Node
+### 5. Custom WASD Teleop Node (src/guideBot/nodes/teleop_game.py)
 A custom keyboard teleoperation node written from scratch with a game-style WASD control scheme. Unlike the standard `turtlebot3_teleop_key`, this node also supports automatic map-following behavior while preserving the ability to manually override and take direct control of the robot at any time. This dual-mode design (auto + manual override) was built specifically to support the SLAM mapping workflow.
+
+### 6. Custom RViz Configuration
+The default Nav2 RViz configuration caused the robot visualization to move too fast and snap erratically, making it difficult to monitor navigation. A custom RViz config was created to tune the display behavior , smoothing out robot movement in the visualizer and making it easier to observe and debug the navigation stack during development.
 
 ---
 
